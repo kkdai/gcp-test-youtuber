@@ -1,7 +1,9 @@
 import os
+import json
 from flask import Flask, jsonify
 from google.cloud import secretmanager
-from langchain_community.document_loaders import GoogleApiClient, GoogleApiYoutubeLoader
+from googleapiclient.discovery import build
+from google.oauth2.credentials import Credentials
 
 app = Flask(__name__)
 
@@ -14,34 +16,31 @@ def get_secret(secret_id):
 
 
 def init_google_api_client():
-    creds_content = get_secret("youtube_api_credentials")
-    return GoogleApiClient(credentials_json=creds_content)
+    creds_content = json.loads(get_secret("youtube_api_credentials"))
+    credentials = Credentials.from_authorized_user_info(creds_content)
+    return build("youtube", "v3", credentials=credentials)
 
 
 @app.route("/load-youtube-data", methods=["GET"])
 def load_youtube_data():
     try:
-        google_api_client = init_google_api_client()
+        youtube = init_google_api_client()
 
         # Use a Channel
-        youtube_loader_channel = GoogleApiYoutubeLoader(
-            google_api_client=google_api_client,
-            channel_name="Reducible",
-            captions_language="en",
+        channel_response = (
+            youtube.channels()
+            .list(part="snippet,contentDetails,statistics", forUsername="Reducible")
+            .execute()
         )
 
         # Use Youtube Ids
-        youtube_loader_ids = GoogleApiYoutubeLoader(
-            google_api_client=google_api_client,
-            video_ids=["TrdevFK_am4"],
-            add_video_info=True,
+        video_response = (
+            youtube.videos()
+            .list(part="snippet,contentDetails,statistics", id="TrdevFK_am4")
+            .execute()
         )
 
-        # Load data
-        channel_data = youtube_loader_channel.load()
-        ids_data = youtube_loader_ids.load()
-
-        return jsonify({"channel_data": str(channel_data), "ids_data": str(ids_data)})
+        return jsonify({"channel_data": channel_response, "video_data": video_response})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
