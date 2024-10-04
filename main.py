@@ -1,4 +1,5 @@
 import os
+import tempfile
 from flask import Flask, jsonify
 from google.cloud import secretmanager
 from langchain_community.document_loaders import GoogleApiClient, GoogleApiYoutubeLoader
@@ -15,7 +16,20 @@ def get_secret(secret_id):
 
 def init_google_api_client():
     creds_content = get_secret("youtube_api_credentials")
-    return GoogleApiClient(credentials_json=creds_content)
+
+    # Create a temporary file to store the credentials
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as temp_creds_file:
+        temp_creds_file.write(creds_content.encode("utf-8"))
+        temp_creds_file.flush()
+        temp_creds_file_path = temp_creds_file.name
+
+    # Initialize GoogleApiClient with the path to the temporary credentials file
+    google_api_client = GoogleApiClient(service_account_path=temp_creds_file_path)
+
+    # Clean up the temporary file after use
+    os.unlink(temp_creds_file_path)
+
+    return google_api_client
 
 
 @app.route("/load-youtube-data", methods=["GET"])
