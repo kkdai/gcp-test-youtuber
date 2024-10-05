@@ -34,7 +34,7 @@ def init_google_api_client():
     # Create a temporary file to store the credentials
     with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as temp_creds_file:
         logging.debug("Writing credentials to temporary file")
-        temp_creds_file.write(creds_content)
+        temp_creds_file.write(creds_content.encode("utf-8"))
         temp_creds_file.flush()
         temp_creds_file_path = temp_creds_file.name
 
