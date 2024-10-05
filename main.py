@@ -1,6 +1,7 @@
 import os
 import tempfile
 import logging
+from pathlib import Path
 from flask import Flask, jsonify
 from google.cloud import secretmanager
 from langchain_community.document_loaders import GoogleApiClient, GoogleApiYoutubeLoader
@@ -25,12 +26,6 @@ def init_google_api_client():
     logging.debug("Initializing GoogleApiClient")
     creds_content = get_secret("youtube_api_credentials")
 
-    # if "project_id" is not in creds_content, log it also show len of creds_content
-    if "project_id" not in creds_content:
-        logging.debug(f"creds_content length: {len(creds_content)}")
-        logging.debug(f"creds_content: {creds_content}")
-        raise Exception("Invalid credentials content")
-
     # Create a temporary file to store the credentials
     with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as temp_creds_file:
         logging.debug("Writing credentials to temporary file")
@@ -39,6 +34,9 @@ def init_google_api_client():
         temp_creds_file_path = temp_creds_file.name
 
     logging.debug(f"Temporary credentials file created at: {temp_creds_file_path}")
+
+    # Convert the file path to a Path object
+    temp_creds_file_path = Path(temp_creds_file_path)
 
     # Initialize GoogleApiClient with the path to the temporary credentials file
     google_api_client = GoogleApiClient(service_account_path=temp_creds_file_path)
