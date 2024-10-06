@@ -11,9 +11,6 @@ logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
 
-# Global variable to store the GoogleApiClient
-google_api_client = None
-
 
 def get_secret(secret_id):
     logging.debug(f"Fetching secret for: {secret_id}")
@@ -59,6 +56,7 @@ def load_youtube_data():
             return jsonify({"error": "Missing 'v_id' parameter"}), 400
 
         logging.debug(f"Loading YouTube data for video ID: {v_id}")
+        google_api_client = init_google_api_client()
 
         # Use Youtube Ids
         youtube_loader_ids = GoogleApiYoutubeLoader(
@@ -84,6 +82,4 @@ def hello():
 
 
 if __name__ == "__main__":
-    # Initialize the GoogleApiClient once at startup
-    google_api_client = init_google_api_client()
     app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
