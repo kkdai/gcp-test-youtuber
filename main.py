@@ -2,7 +2,7 @@ import os
 import tempfile
 import logging
 from pathlib import Path
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from google.cloud import secretmanager
 from langchain_community.document_loaders import GoogleApiClient, GoogleApiYoutubeLoader
 
@@ -51,31 +51,26 @@ def init_google_api_client():
 @app.route("/load-youtube-data", methods=["GET"])
 def load_youtube_data():
     try:
-        logging.debug("Loading YouTube data")
-        google_api_client = init_google_api_client()
+        v_id = request.args.get("v_id")
+        if not v_id:
+            return jsonify({"error": "Missing 'v_id' parameter"}), 400
 
-        # Use a Channel
-        youtube_loader_channel = GoogleApiYoutubeLoader(
-            google_api_client=google_api_client,
-            channel_name="Reducible",
-            captions_language="en",
-        )
+        logging.debug(f"Loading YouTube data for video ID: {v_id}")
+        google_api_client = init_google_api_client()
 
         # Use Youtube Ids
         youtube_loader_ids = GoogleApiYoutubeLoader(
             google_api_client=google_api_client,
-            video_ids=["TrdevFK_am4"],
+            video_ids=[v_id],
             add_video_info=True,
         )
 
         # Load data
-        logging.debug("Loading data from channel")
-        channel_data = youtube_loader_channel.load()
-        logging.debug("Loading data from video IDs")
+        logging.debug("Loading data from video ID")
         ids_data = youtube_loader_ids.load()
 
         logging.debug("Data loaded successfully")
-        return jsonify({"channel_data": str(channel_data), "ids_data": str(ids_data)})
+        return jsonify({"ids_data": str(ids_data)})
     except Exception as e:
         logging.error(f"An error occurred: {str(e)}", exc_info=True)
         return jsonify({"error": str(e)}), 500
